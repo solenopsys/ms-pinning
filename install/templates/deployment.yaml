@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  {{ .Values.fullName }}
+spec:
+  replicas: {{ .Values.replicasCount }}
+  selector:
+    matchLabels:
+        app: {{ .Values.selectorLabel }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.fullName}}
+        type: hStreamNode
+        hsServiceName: {{ .Values.fullName }}
+    spec:
+      containers:
+        - name: {{ .Values.containers.hs_adapter.name}}
+          image: {{ .Values.containers.hs_adapter.image}}
+          imagePullPolicy: {{ .Values.containers.hs_adapter.pullPolicy}}
+          ports:
+            - containerPort: {{ .Values.service.zmqPort }}
+          env:
+            - name: zmq.SocketUrl
+              value: "tcp://*:{{ .Values.service.zmqPort }}"
+            - name: postgres.Host
+              value: "solenopsys-ds-postgres.default.svc.cluster.local"
+            - name: postgres.Port
+              value: "{{ .Values.service.port}}"
+            - name: postgres.Password
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: pgpassword
+                  optional: false
+            - name: postgres.User
+              value: postgres
+      terminationGracePeriodSeconds: 60

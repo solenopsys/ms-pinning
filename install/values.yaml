@@ -1,0 +1,13 @@
+replicasCount: 1
+fullName: "invicta-ms-pinning"
+selectorLabel: "invicta-ms-pinning"
+
+service:
+  postgresql: 5432
+
+containers:
+  hs_adapter:
+    name: hs-postgres
+    image: registry.alexstorm.solenopsys.org/alexstorm-hsm-postgres
+    pullPolicy: Always
+
