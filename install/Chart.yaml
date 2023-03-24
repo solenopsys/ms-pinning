@@ -1,8 +1,8 @@
 apiVersion: v2
-name: invicta-ms-pinning
+name: platform-ms-pinning
 version: 0.1.0
 description: Pinning service
-icon: "http://alexstorm.solenopsys.org/apps/assets/invicta-ms-pinning.svg"
+icon: "http://alexstorm.solenopsys.org/apps/assets/platform-ms-pinning.svg"
 appVersion: 1.0.0
 
 

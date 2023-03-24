@@ -19,14 +19,16 @@ spec:
           image: {{ .Values.containers.hs_adapter.image}}
           imagePullPolicy: {{ .Values.containers.hs_adapter.pullPolicy}}
           ports:
-            - containerPort: {{ .Values.service.zmqPort }}
+            - containerPort: {{ .Values.service.port }}
           env:
-            - name: zmq.SocketUrl
-              value: "tcp://*:{{ .Values.service.zmqPort }}"
+            - name: ipfs-cluster.Port
+              value: "9094"
+            - name: ipfs-cluster.Host
+              value: "ipfs-cluster-node.default.svc.cluster.local"
             - name: postgres.Host
               value: "solenopsys-ds-postgres.default.svc.cluster.local"
             - name: postgres.Port
-              value: "{{ .Values.service.port}}"
+              value: "5432"
             - name: postgres.Password
               valueFrom:
                 secretKeyRef:

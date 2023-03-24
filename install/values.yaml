@@ -1,13 +1,15 @@
 replicasCount: 1
-fullName: "invicta-ms-pinning"
-selectorLabel: "invicta-ms-pinning"
+fullName: "platform-ms-pinning"
+selectorLabel: "platform-ms-pinning"
 
 service:
-  postgresql: 5432
+  port: 8080 
+
+  
 
 containers:
   hs_adapter:
     name: hs-postgres
-    image: registry.alexstorm.solenopsys.org/alexstorm-hsm-postgres
+    image: registry.solenopsys.org/platform-ms-pinning
     pullPolicy: Always
 
