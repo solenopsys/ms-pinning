@@ -1,5 +1,5 @@
 CREATE TABLE pins (
-                       id  PRIMARY KEY,
+                       id    PRIMARY KEY varchar(64) NOT NULL,
                        user_id foreign key REFERENCES users(id),
                        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                        size bigint,

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"log"
 
@@ -11,12 +10,27 @@ import (
 )
 
 func main() {
-	db, err := sql.Open("postgres", "postgres://user:password@localhost/mydatabase?sslmode=disable")
+
+	db := Db{
+		name:     "mydatabase",
+		password: "password",
+		username: "username",
+		host:     "localhost",
+		port:     5432,
+	}
+
+	err := db.Connect()
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer func(db *Db) {
+		err := db.Disconnect()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(&db)
 
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	driver, err := postgres.WithInstance(db.connection, &postgres.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}
