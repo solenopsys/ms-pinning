@@ -1,17 +1,10 @@
 package main
 
+import "database/sql"
+
 type Data struct {
-	db *Db
+	connection *sql.DB
 }
-
-/*
-CREATE TABLE users (
-                       id SERIAL PRIMARY KEY,
-                       public_key VARCHAR(255) NOT NULL,
-                       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-
-);
-*/
 
 type User struct {
 	id        int64
@@ -19,17 +12,6 @@ type User struct {
 	createdAt string
 }
 
-/*
-CREATE TABLE pins (
-
-	id  PRIMARY KEY,
-	user_id foreign key REFERENCES users(id),
-	created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-	size bigint,
-	state VARCHAR(255) NOT NULL DEFAULT 'new'
-
-);
-*/
 type Pin struct {
 	id        int
 	userId    int64
@@ -38,10 +20,12 @@ type Pin struct {
 	state     string
 }
 
-// function get user by id
+func (d *Data) GetUserById(publicKey string) *User {
+	res, err := d.connection.Query("SELECT * FROM users WHERE public_key = '" + publicKey + "'")
+	if err != nil {
+		panic(err)
+	}
 
-func (data *Data) GetUserById(publicKey string) *User {
-	res := data.db.Query("SELECT * FROM users WHERE public_key = '" + publicKey + "'")
 	row := res.Next()
 	if row {
 		user := &User{}
@@ -52,17 +36,21 @@ func (data *Data) GetUserById(publicKey string) *User {
 	}
 }
 
-// function add user to db
-func (data *Data) AddUser(publicKey string) (int64, error) {
-	insert, err := data.db.Insert("INSERT INTO users (public_key) VALUES ('" + publicKey + "')")
+func (d *Data) AddUser(publicKey string) (int64, error) {
+	query := "INSERT INTO users (public_key) VALUES ('" + publicKey + "')"
+	res, err := d.connection.Exec(query)
 	if err != nil {
 		panic(err)
 	}
-	id, err := insert.LastInsertId()
-	return id, err
+
+	return res.LastInsertId()
 }
 
-// function add pin to db
-func (data *Data) AddPin(id string, userId int64, size int) {
-	data.db.Insert("INSERT INTO pins (id,user_id, size) VALUES ('" + id + "'," + string(userId) + ", " + string(size) + ")")
+func (d *Data) AddPin(id string, userId int64, size int) (int64, error) {
+	query := "INSERT INTO pins (id,user_id, size) VALUES ('" + id + "'," + string(userId) + ", " + string(size) + ")"
+	res, err := d.connection.Exec(query)
+	if err != nil {
+		panic(err)
+	}
+	return res.LastInsertId()
 }

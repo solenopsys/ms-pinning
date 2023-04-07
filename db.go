@@ -2,6 +2,8 @@ package main
 
 import (
 	"database/sql"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"log"
 )
 
@@ -10,12 +12,12 @@ type Db struct {
 	password   string
 	username   string
 	host       string
-	port       int
+	port       string
 	connection *sql.DB
 }
 
 func (db *Db) Connect() error {
-	connectString := "postgres://" + db.username + ":" + db.password + "@" + db.host + ":" + string(db.port) + "/" + db.name + "?sslmode=disable"
+	connectString := "postgres://" + db.username + ":" + db.password + "@" + db.host + ":" + db.port + "/" + db.name + "?sslmode=disable"
 	var err error
 	db.connection, err = sql.Open("postgres", connectString)
 	if err != nil {
@@ -28,11 +30,23 @@ func (db *Db) Disconnect() error {
 	return db.connection.Close()
 }
 
-func (db *Db) Query(query string) *sql.Rows {
-	return db.Query(query)
-}
+func (db *Db) Migrate() {
+	driver, err := postgres.WithInstance(db.connection, &postgres.Config{})
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// insert function
-func (db *Db) Insert(query string) (sql.Result, error) {
-	return db.connection.Exec(query)
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://migrations",
+		"mydatabase",
+		driver,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = m.Up()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

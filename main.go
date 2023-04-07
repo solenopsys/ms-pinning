@@ -1,10 +1,9 @@
 package main
 
 import (
-	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"log"
+	"os"
 
-	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 )
@@ -12,11 +11,11 @@ import (
 func main() {
 
 	db := Db{
-		name:     "mydatabase",
-		password: "password",
-		username: "username",
-		host:     "localhost",
-		port:     5432,
+		name:     "ms_pinning",
+		password: os.Getenv("postgres.Password"),
+		username: os.Getenv("postgres.User"),
+		host:     os.Getenv("postgres.Host"),
+		port:     os.Getenv("postgres.Port"),
 	}
 
 	err := db.Connect()
@@ -30,22 +29,10 @@ func main() {
 		}
 	}(&db)
 
-	driver, err := postgres.WithInstance(db.connection, &postgres.Config{})
-	if err != nil {
-		log.Fatal(err)
+	api := Api{
+		addr: ":" + os.Getenv("api.Port"),
 	}
 
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://migrations",
-		"mydatabase",
-		driver,
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
+	api.Start()
 
-	err = m.Up()
-	if err != nil {
-		log.Fatal(err)
-	}
 }
