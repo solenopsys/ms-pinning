@@ -40,12 +40,14 @@ func (db *Db) Migrate() {
 		db.name,
 		driver,
 	)
-	if err != nil {
-		klog.Fatal(err)
-	}
-
-	err = m.Up()
-	if err != nil {
-		klog.Fatal(err)
+	if err := m.Up(); err != nil {
+		if err == migrate.ErrNoChange {
+			klog.Info("No migrations to apply")
+			klog.Error(err.Error())
+		} else {
+			klog.Fatal(err)
+		}
+	} else {
+		klog.Info("Migrations applied")
 	}
 }

@@ -15,7 +15,7 @@ helm_build_push(){
 REGISTRY=registry.solenopsys.org
 NAME=platform-ms-pinning
 ARCHS="amd64"
-VER=0.1.1
+VER=0.1.2
 
 
 build_push
