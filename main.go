@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"k8s.io/klog/v2"
 	"os"
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -20,12 +20,15 @@ func main() {
 
 	err := db.Connect()
 	if err != nil {
-		log.Fatal(err)
+		klog.Fatal(err)
 	}
+
+	db.Migrate()
+
 	defer func(db *Db) {
 		err := db.Disconnect()
 		if err != nil {
-			log.Fatal(err)
+			klog.Fatal(err)
 		}
 	}(&db)
 

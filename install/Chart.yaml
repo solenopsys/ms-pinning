@@ -1,6 +1,6 @@
 apiVersion: v2
 name: platform-ms-pinning
-version: 0.1.0
+version: 0.1.1
 description: Pinning service
 icon: "http://alexstorm.solenopsys.org/apps/assets/platform-ms-pinning.svg"
 appVersion: 1.0.0

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"k8s.io/klog/v2"
@@ -10,15 +11,13 @@ import (
 type Api struct {
 	addr string
 	ipfs *IpfsCluster
-	db   *Db
+	db   *sql.DB
 	data *Data
 }
 
 func (api *Api) Start() {
 	// http server open port
 	r := mux.NewRouter()
-	api.db.Connect()
-	api.ipfs.Connect()
 
 	// Define an endpoint to create a new user
 	r.HandleFunc("/pin", api.pigGroup).Methods("POST")

@@ -33,8 +33,10 @@ spec:
               valueFrom:
                 secretKeyRef:
                   key: password
-                  name: pgpassword
+                  name: pg-password
                   optional: false
             - name: postgres.User
               value: postgres
+            - name: api.Port
+              value: "{{ .Values.service.port }}"
       terminationGracePeriodSeconds: 60

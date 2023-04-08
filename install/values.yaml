@@ -5,8 +5,6 @@ selectorLabel: "platform-ms-pinning"
 service:
   port: 8080 
 
-  
-
 containers:
   hs_adapter:
     name: hs-postgres
