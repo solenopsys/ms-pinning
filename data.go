@@ -22,6 +22,8 @@ type Pin struct {
 
 func (d *Data) GetUserById(publicKey string) *User {
 	res, err := d.connection.Query("SELECT * FROM users WHERE public_key = '" + publicKey + "'")
+	defer res.Close()
+
 	if err != nil {
 		panic(err)
 	}
