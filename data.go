@@ -1,6 +1,8 @@
 package main
 
-import "database/sql"
+import (
+	"database/sql"
+)
 
 type Data struct {
 	connection *sql.DB
@@ -21,7 +23,7 @@ type Pin struct {
 }
 
 func (d *Data) GetUserById(publicKey string) *User {
-	res, err := d.connection.Query("SELECT * FROM users WHERE public_key = '" + publicKey + "'")
+	res, err := d.connection.Query("SELECT * FROM users WHERE public_key = $1", publicKey)
 	defer res.Close()
 
 	if err != nil {
@@ -39,20 +41,18 @@ func (d *Data) GetUserById(publicKey string) *User {
 }
 
 func (d *Data) AddUser(publicKey string) (int64, error) {
-	query := "INSERT INTO users (public_key) VALUES ('" + publicKey + "')"
-	res, err := d.connection.Exec(query)
-	if err != nil {
-		panic(err)
-	}
+	lastInsertId := int64(0)
+	query := "INSERT INTO users (public_key) VALUES ($1)"
 
-	return res.LastInsertId()
+	err := d.connection.QueryRow(query, publicKey).Scan(&lastInsertId)
+
+	return lastInsertId, err
 }
 
-func (d *Data) AddPin(id string, userId int64, size int) (int64, error) {
-	query := "INSERT INTO pins (id,user_id, size) VALUES ('" + id + "'," + string(userId) + ", " + string(size) + ")"
-	res, err := d.connection.Exec(query)
-	if err != nil {
-		panic(err)
-	}
-	return res.LastInsertId()
+func (d *Data) AddPin(id string, userId int64, size uint64) error {
+
+	query := "INSERT INTO pins (id,user_id, size) VALUES ($1,$2, $3)"
+	err := d.connection.QueryRow(query, id, userId, size).Err()
+
+	return err
 }

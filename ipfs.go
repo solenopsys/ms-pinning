@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/ipfs-cluster/ipfs-cluster/api"
 	"github.com/ipfs-cluster/ipfs-cluster/api/rest/client"
+	"k8s.io/klog/v2"
 )
 
 type IpfsPingGroup struct {
@@ -14,18 +14,20 @@ type IpfsPingGroup struct {
 }
 
 type IpfsCluster struct {
-	IpfsClusterUrl string
-	conection      client.Client
+	Host   string
+	Port   string
+	client client.Client
 }
 
 func (cluster *IpfsCluster) Connect() {
 	var err error
 
-	cfg := client.Config{Host: "bla"}
-	cluster.conection, err = client.NewDefaultClient(
+	cfg := client.Config{Host: cluster.Host, Port: cluster.Port}
+	cluster.client, err = client.NewDefaultClient(
 		&cfg)
 	if err != nil {
-		fmt.Println("Failed to create client:", err)
+
+		klog.Error("Failed to create client:", err)
 		return
 	}
 }
@@ -37,18 +39,18 @@ func (cluster *IpfsCluster) PinGroup(group IpfsPingGroup) []api.Pin {
 	for _, cid := range group.Cids {
 		decodeCid, err := api.DecodeCid(cid)
 		if err != nil {
-			fmt.Println("Failed decode cid:", err)
+			klog.Error("Failed decode cid:", err)
 			return nil
 		}
 
-		pin, err := cluster.conection.Pin(context.Background(), decodeCid, api.PinOptions{
+		pin, err := cluster.client.Pin(context.Background(), decodeCid, api.PinOptions{
 			ReplicationFactorMin: group.RepMin,
 			ReplicationFactorMax: group.RepMax,
 		})
 
 		pins = append(pins, pin)
 		if err != nil {
-			fmt.Println("Failed to pin CID:", err)
+			klog.Error("Failed to pin CID:", err)
 			return nil
 		}
 	}

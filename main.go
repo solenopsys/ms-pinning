@@ -17,6 +17,9 @@ func main() {
 		host:     os.Getenv("postgres.Host"),
 		port:     os.Getenv("postgres.Port"),
 	}
+	ipfsClusterPort := os.Getenv("ipfs-cluster.Port")
+	ipfsClusterHost := os.Getenv("ipfs-cluster.Host")
+	apiPort := os.Getenv("api.Port")
 
 	err := db.Connect()
 	if err != nil {
@@ -32,8 +35,16 @@ func main() {
 		}
 	}(&db)
 
+	ipfsCluster := &IpfsCluster{
+		Host: ipfsClusterHost, Port: ipfsClusterPort,
+	}
+	ipfsCluster.Connect()
+	dataService := &Data{connection: db.connection}
+
 	api := Api{
-		addr: ":" + os.Getenv("api.Port"),
+		addr: ":" + apiPort,
+		ipfs: ipfsCluster,
+		data: dataService,
 	}
 
 	api.Start()

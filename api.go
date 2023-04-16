@@ -1,16 +1,15 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"github.com/gorilla/mux"
+	"k8s.io/klog/v2"
 	"net/http"
 )
 
 type Api struct {
 	addr string
 	ipfs *IpfsCluster
-	db   *sql.DB
 	data *Data
 }
 
@@ -19,7 +18,7 @@ func (api *Api) Start() {
 	r := mux.NewRouter()
 
 	// Define an endpoint to create a new user
-	r.HandleFunc("/pin", api.pigGroup)
+	r.HandleFunc("/pin", api.pigGroup).Methods("POST")
 
 	// Start the server
 	klog.Fatal(http.ListenAndServe(api.addr, r))
@@ -48,11 +47,20 @@ func (api *Api) pigGroup(w http.ResponseWriter, r *http.Request) {
 		userId = user.id
 	}
 
-	for _, cid := range pins.Cids {
-		api.data.AddPin(cid, userId, 10)
-	}
-
 	group := api.ipfs.PinGroup(pins)
+
+	for _, pin := range group {
+		pinId := pin.Cid.String()
+		err := api.data.AddPin(pinId, userId, 0)
+
+		if err != nil {
+			klog.Error("Pin save in db error: ", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		} else {
+			klog.Info("Pin save in db: ", pinId)
+		}
+	}
 
 	// Return the new user as JSON
 	json.NewEncoder(w).Encode(group)

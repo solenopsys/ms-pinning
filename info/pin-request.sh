@@ -1,11 +1,11 @@
 curl -X POST \
      -H "Content-Type: application/json" \
-     -H "Authorization: Bearer <access_token>" \
+     -H "Authorization: 3e234212423423423423423423432" \
      -d '{
            "cids": [
-             "QmZEwft3uYvaTp154gdjLyJVSDFjCatNuGTmANGKpvMPZt"
+             "QmcTr47jWdVKzc9USNXguJKbigSbrcKXj7wi93xHAaeytG"
            ],
            "rep_min": 2,
            "rep_max": 3
          }' \
-     http://localhost:32531/pin
+     http://localhost:8085/pin
