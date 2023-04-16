@@ -1,6 +1,6 @@
 module ms-pinning
 
-go 1.19
+go 1.20.3
 
 require (
 	github.com/golang-migrate/migrate/v4 v4.15.2

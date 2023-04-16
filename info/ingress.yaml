@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pinning-ingress
+spec:
+  rules:
+    - host: pinning.solenopsys.org
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name:  platform-ms-pinning
+                port:
+                  number: 8080
+

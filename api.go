@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"k8s.io/klog/v2"
 	"net/http"
 )
 
@@ -20,7 +19,7 @@ func (api *Api) Start() {
 	r := mux.NewRouter()
 
 	// Define an endpoint to create a new user
-	r.HandleFunc("/pin", api.pigGroup).Methods("POST")
+	r.HandleFunc("/pin", api.pigGroup)
 
 	// Start the server
 	klog.Fatal(http.ListenAndServe(api.addr, r))
