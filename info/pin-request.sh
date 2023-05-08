@@ -1,11 +1,11 @@
 curl -X POST \
      -H "Content-Type: application/json" \
-     -H "Authorization: 3e234212423423423423423423432" \
+     -H "Authorization: alexstorm" \
      -d '{
            "cids": [
-             "QmcTr47jWdVKzc9USNXguJKbigSbrcKXj7wi93xHAaeytG"
+             "QmX374s4EKeF57rMAkyJmgxqmPHUcBNET4eHMqpi7G5dGj"
            ],
            "rep_min": 2,
            "rep_max": 3
          }' \
-     http://localhost:8085/pin
+     http://pinning.solenopsys.org/pin
