@@ -1,8 +1,0 @@
-apiVersion: v2
-name: platform-ms-pinning
-version: 0.1.2
-description: Pinning service
-icon: "http://solenopsys.org/apps/assets/platform-ms-pinning.svg"
-appVersion: 1.0.0
-
-
