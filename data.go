@@ -56,3 +56,11 @@ func (d *Data) AddPin(id string, userId int64, size uint64) error {
 
 	return err
 }
+
+func (d *Data) AddLabel(name string, value string, pinId string) error {
+
+	query := "INSERT INTO labels (name,value, pin_id) VALUES ($1,$2, $3)"
+	err := d.connection.QueryRow(query, name, value, pinId).Err()
+
+	return err
+}

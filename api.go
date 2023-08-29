@@ -28,7 +28,7 @@ func (api *Api) pigGroup(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	userKey := r.Header.Get("Authorization")
-	var pins IpfsPingGroup
+	var pins IpfsPinsGroup
 	err := json.NewDecoder(r.Body).Decode(&pins)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -49,16 +49,32 @@ func (api *Api) pigGroup(w http.ResponseWriter, r *http.Request) {
 
 	group := api.ipfs.PinGroup(pins)
 
-	for _, pin := range group {
-		pinId := pin.Cid.String()
-		err := api.data.AddPin(pinId, userId, 0)
-
-		if err != nil {
-			klog.Error("Pin save in db error: ", err)
+	for _, pinConf := range pins.Pins {
+		pin := group[pinConf.Cid]
+		if pin == nil {
+			klog.Error("Pin not success: ", pinConf.Cid)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		} else {
-			klog.Info("Pin save in db: ", pinId)
+			pinId := pin.Cid.String()
+			err := api.data.AddPin(pinId, userId, 0)
+
+			if err != nil {
+				klog.Error("Pin save in db error: ", err)
+				for name, value := range pinConf.Labels {
+					err := api.data.AddLabel(name, value, pinId)
+					if err != nil {
+						klog.Error("Label save in db error: ", err)
+						http.Error(w, err.Error(), http.StatusBadRequest)
+						return
+					} else {
+						klog.Info("Label save in db: ", pinId, name)
+					}
+				}
+				return
+			} else {
+				klog.Info("Pin save in db: ", pinId)
+			}
 		}
 	}
 

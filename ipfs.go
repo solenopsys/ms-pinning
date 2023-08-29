@@ -7,10 +7,15 @@ import (
 	"k8s.io/klog/v2"
 )
 
-type IpfsPingGroup struct {
-	Cids   []string `json:"cids"`
-	RepMin int      `json:"rep_min"`
-	RepMax int      `json:"rep_max"`
+type IpfsPinsGroup struct {
+	Pins   []PinConf `json:"pins"`
+	RepMin int       `json:"rep_min"`
+	RepMax int       `json:"rep_max"`
+}
+
+type PinConf struct {
+	Cid    string            `json:"cid"`
+	Labels map[string]string `json:"labels"`
 }
 
 type IpfsCluster struct {
@@ -32,12 +37,12 @@ func (cluster *IpfsCluster) Connect() {
 	}
 }
 
-func (cluster *IpfsCluster) PinGroup(group IpfsPingGroup) []api.Pin {
+func (cluster *IpfsCluster) PinGroup(group IpfsPinsGroup) map[string]*api.Pin {
 
-	pins := []api.Pin{}
+	pins := map[string]*api.Pin{}
 
-	for _, cid := range group.Cids {
-		decodeCid, err := api.DecodeCid(cid)
+	for _, cid := range group.Pins {
+		decodeCid, err := api.DecodeCid(cid.Cid)
 		if err != nil {
 			klog.Error("Failed decode cid:", err)
 			return nil
@@ -48,7 +53,7 @@ func (cluster *IpfsCluster) PinGroup(group IpfsPingGroup) []api.Pin {
 			ReplicationFactorMax: group.RepMax,
 		})
 
-		pins = append(pins, pin)
+		pins[cid.Cid] = &pin
 		if err != nil {
 			klog.Error("Failed to pin CID:", err)
 			return nil
