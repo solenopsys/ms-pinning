@@ -11,4 +11,4 @@ curl -X POST \
            "rep_min": 2,
            "rep_max": 3
          }' \
-     http://127.0.0.1:8081/pin
+     http://pinning.solenopsys.org/pin
