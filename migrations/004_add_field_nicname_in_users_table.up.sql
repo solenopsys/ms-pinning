@@ -1,6 +1,1 @@
-ALTER TABLE {
-    ADD COLUMN {
-        name: "nicname",
-        type: "string",
-        default: "test"
-    }
+ALTER TABLE users  ADD COLUMN nicname VARCHAR(64) ;

@@ -2,7 +2,7 @@ CREATE TABLE labels
 (
     name         VARCHAR(64) ,
     value         VARCHAR(64) ,
-    pin_id    INTEGER REFERENCES pins (id),
+    pin_id    VARCHAR(64) REFERENCES pins (id),
     created_at TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 

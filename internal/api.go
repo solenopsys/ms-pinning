@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"encoding/json"
@@ -8,9 +8,9 @@ import (
 )
 
 type Api struct {
-	addr string
-	ipfs *IpfsCluster
-	data *Data
+	Addr string
+	Ipfs *IpfsCluster
+	Data *Data
 }
 
 func (api *Api) Start() {
@@ -21,7 +21,7 @@ func (api *Api) Start() {
 	r.HandleFunc("/pin", api.pigGroup).Methods("POST")
 
 	// Start the server
-	klog.Fatal(http.ListenAndServe(api.addr, r))
+	klog.Fatal(http.ListenAndServe(api.Addr, r))
 }
 
 func (api *Api) pigGroup(w http.ResponseWriter, r *http.Request) {
@@ -36,9 +36,9 @@ func (api *Api) pigGroup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var userId int64
-	user := api.data.GetUserById(userKey)
+	user := api.Data.GetUserById(userKey)
 	if user == nil {
-		userId, err = api.data.AddUser(userKey)
+		userId, err = api.Data.AddUser(userKey)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -47,7 +47,7 @@ func (api *Api) pigGroup(w http.ResponseWriter, r *http.Request) {
 		userId = user.id
 	}
 
-	group := api.ipfs.PinGroup(pins)
+	group := api.Ipfs.PinGroup(pins)
 
 	for _, pinConf := range pins.Pins {
 		pin := group[pinConf.Cid]
@@ -57,12 +57,12 @@ func (api *Api) pigGroup(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			pinId := pin.Cid.String()
-			err := api.data.AddPin(pinId, userId, 0)
+			err := api.Data.AddPin(pinId, userId, 0)
 
 			if err != nil {
 				klog.Error("Pin save in db error: ", err)
 				for name, value := range pinConf.Labels {
-					err := api.data.AddLabel(name, value, pinId)
+					err := api.Data.AddLabel(name, value, pinId)
 					if err != nil {
 						klog.Error("Label save in db error: ", err)
 						http.Error(w, err.Error(), http.StatusBadRequest)

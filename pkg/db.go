@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"database/sql"
@@ -10,34 +10,34 @@ import (
 )
 
 type Db struct {
-	name       string
-	password   string
-	username   string
-	host       string
-	port       string
-	connection *sql.DB
+	Name       string
+	Password   string
+	Username   string
+	Host       string
+	Port       string
+	Connection *sql.DB
 }
 
 func (db *Db) Connect() error {
-	connectString := "postgres://" + db.username + ":" + db.password + "@" + db.host + ":" + db.port + "/" + db.name + "?sslmode=disable"
+	connectString := "postgres://" + db.Username + ":" + db.Password + "@" + db.Host + ":" + db.Port + "/" + db.Name + "?sslmode=disable"
 	var err error
-	db.connection, err = sql.Open("postgres", connectString)
+	db.Connection, err = sql.Open("postgres", connectString)
 	return err
 }
 
 func (db *Db) Disconnect() error {
-	return db.connection.Close()
+	return db.Connection.Close()
 }
 
 func (db *Db) Migrate() {
-	driver, err := postgres.WithInstance(db.connection, &postgres.Config{})
+	driver, err := postgres.WithInstance(db.Connection, &postgres.Config{})
 	if err != nil {
 		klog.Fatal(err)
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://migrations",
-		db.name,
+		db.Name,
 		driver,
 	)
 	if err := m.Up(); err != nil {

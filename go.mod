@@ -6,6 +6,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/gorilla/mux v1.8.0
 	github.com/ipfs-cluster/ipfs-cluster v1.0.6
+	github.com/joho/godotenv v1.3.0
 	github.com/lib/pq v1.10.7
 	k8s.io/klog/v2 v2.30.0
 )
