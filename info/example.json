@@ -1,5 +1,5 @@
 {
-  "cids": [
+  "pins": [
     {
       "cid": "QmZEwft3uYvaTp154gdjLyJVSDFjCatNuGTmANGKpvMPZt",
       "labels": {"test1": "value1","test2": "value2"}

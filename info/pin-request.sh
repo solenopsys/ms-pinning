@@ -2,13 +2,13 @@ curl -X POST \
      -H "Content-Type: application/json" \
      -H "Authorization: alexstorm" \
      -d '{
-           "cids": [
+           "pins": [
              {
-               "cid": "QmZEwft3uYvaTp154gdjLyJVSDFjCatNuGTmANGKpvMPZt",
-               "labels": {"test1": "value1","test2": "value2"}
+               "cid": "QmQb25BukhubpfTrpSjtunk2pWEgURqbrMD6NU1vFnanPq",
+               "labels": {"site": "robotization.vc"}
              }
            ],
            "rep_min": 2,
            "rep_max": 3
          }' \
-     http://localhost:8008/pin
+     http://127.0.0.1:8081/pin

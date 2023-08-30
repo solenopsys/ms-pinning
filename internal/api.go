@@ -49,6 +49,10 @@ func (api *Api) pigGroup(w http.ResponseWriter, r *http.Request) {
 
 	group := api.Ipfs.PinGroup(pins)
 
+	if group == nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	for _, pinConf := range pins.Pins {
 		pin := group[pinConf.Cid]
 		if pin == nil {
@@ -61,6 +65,9 @@ func (api *Api) pigGroup(w http.ResponseWriter, r *http.Request) {
 
 			if err != nil {
 				klog.Error("Pin save in db error: ", err)
+				return
+			} else {
+				klog.Info("Pin save in db: ", pinId)
 				for name, value := range pinConf.Labels {
 					err := api.Data.AddLabel(name, value, pinId)
 					if err != nil {
@@ -71,9 +78,6 @@ func (api *Api) pigGroup(w http.ResponseWriter, r *http.Request) {
 						klog.Info("Label save in db: ", pinId, name)
 					}
 				}
-				return
-			} else {
-				klog.Info("Pin save in db: ", pinId)
 			}
 		}
 	}
