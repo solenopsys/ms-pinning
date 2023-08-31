@@ -55,7 +55,7 @@ func main() {
 		}
 	}(&db)
 
-	ipfsCluster := &internal.IpfsCluster{
+	ipfsCluster := &pkg.IpfsCluster{
 		Host: ipfsClusterHost, Port: ipfsClusterPort,
 	}
 	ipfsCluster.Connect()

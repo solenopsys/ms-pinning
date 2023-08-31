@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/ipfs-cluster/ipfs-cluster/api"
 	"k8s.io/klog/v2"
+	"ms-pinning/pkg"
 )
 
 type Data struct {
@@ -25,21 +26,41 @@ type Pin struct {
 	state     string
 }
 
-func (d *Data) GetUserById(publicKey string) *User {
-	res, err := d.Connection.Query("SELECT id,public_key,created_at FROM users  WHERE public_key = $1", publicKey)
+func (d *Data) GetPinsCountByUser(userId int64) (int, error) {
+	var count int
+	err := d.Connection.QueryRow("SELECT count(*) FROM  pins  WHERE pins.user_id= $1", userId).Scan(&count)
+
+	return count, err
+}
+
+func (d *Data) GetPinsCount() (int, error) {
+	var count int
+	err := d.Connection.QueryRow("SELECT count(*) FROM  pins ").Scan(&count)
+
+	return count, err
+}
+
+func (d *Data) GetUsersCount() (int, error) {
+	var count int
+	err := d.Connection.QueryRow("SELECT count(*) FROM  users ").Scan(&count)
+	return count, err
+}
+
+func (d *Data) GetUserById(publicKey string) (*User, error) {
+	res, err := d.Connection.Query("SELECT id,public_key,created_at FROM  users  WHERE public_key = $1", publicKey)
 	defer res.Close()
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	row := res.Next()
 	if row {
 		user := &User{}
 		res.Scan(&user.id, &user.publicKey, &user.createdAt)
-		return user
+		return user, nil
 	} else {
-		return nil
+		return nil, nil
 	}
 }
 
@@ -68,7 +89,7 @@ func (d *Data) AddLabel(name string, value string, pinId string) error {
 	return err
 }
 
-func (d *Data) SavePins(allPins []PinConf, group map[string]*api.Pin, userId int64) error {
+func (d *Data) SavePins(allPins []pkg.PinConf, group map[string]*api.Pin, userId int64) error {
 	for _, pinConf := range allPins {
 		pin := group[pinConf.Cid]
 		if pin == nil {
@@ -92,4 +113,5 @@ func (d *Data) SavePins(allPins []PinConf, group map[string]*api.Pin, userId int
 			}
 		}
 	}
+	return nil
 }

@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"k8s.io/klog/v2"
+	"ms-pinning/pkg"
 	"net/http"
 )
 
 type Api struct {
 	Addr string
-	Ipfs *IpfsCluster
+	Ipfs *pkg.IpfsCluster
 	Data *Data
 }
 
@@ -25,8 +26,21 @@ func (api *Api) Start() {
 	klog.Fatal(http.ListenAndServe(api.Addr, r))
 }
 
-func (api *Api) stat(w http.ResponseWriter, r *http.Request) {
+type Statistic struct {
+	UsersCount int `json:"users_count"`
+	PinsCount  int `json:"pins_count"`
+}
 
+func (api *Api) stat(w http.ResponseWriter, r *http.Request) {
+	stat := Statistic{}
+	stat.UsersCount, _ = api.Data.GetUsersCount()
+	stat.PinsCount, _ = api.Data.GetPinsCount()
+
+	w.Header().Set("Content-Type", "application/json")
+	err := json.NewEncoder(w).Encode(stat)
+	if checkError(err, w) {
+		return
+	}
 }
 
 func checkError(err error, w http.ResponseWriter) bool {
@@ -45,7 +59,7 @@ func (api *Api) pigGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var pins IpfsPinsGroup
+	var pins pkg.IpfsPinsGroup
 	err = json.NewDecoder(r.Body).Decode(&pins)
 	if checkError(err, w) {
 		return
