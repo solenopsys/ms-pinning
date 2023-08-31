@@ -37,7 +37,7 @@ func (cluster *IpfsCluster) Connect() {
 	}
 }
 
-func (cluster *IpfsCluster) PinGroup(group IpfsPinsGroup) map[string]*api.Pin {
+func (cluster *IpfsCluster) PinGroup(group IpfsPinsGroup) (map[string]*api.Pin, error) {
 
 	pins := map[string]*api.Pin{}
 
@@ -45,7 +45,7 @@ func (cluster *IpfsCluster) PinGroup(group IpfsPinsGroup) map[string]*api.Pin {
 		decodeCid, err := api.DecodeCid(cid.Cid)
 		if err != nil {
 			klog.Error("Failed decode cid:", err)
-			return nil
+			return pins, err
 		}
 
 		pin, err := cluster.client.Pin(context.Background(), decodeCid, api.PinOptions{
@@ -53,12 +53,12 @@ func (cluster *IpfsCluster) PinGroup(group IpfsPinsGroup) map[string]*api.Pin {
 			ReplicationFactorMax: group.RepMax,
 		})
 
-		pins[cid.Cid] = &pin
 		if err != nil {
 			klog.Error("Failed to pin CID:", err)
-			return nil
+			return pins, err
 		}
+		pins[cid.Cid] = &pin
 	}
 
-	return pins
+	return pins, nil
 }

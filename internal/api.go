@@ -19,69 +19,51 @@ func (api *Api) Start() {
 
 	// Define an endpoint to create a new user
 	r.HandleFunc("/pin", api.pigGroup).Methods("POST")
+	r.HandleFunc("/stat", api.stat).Methods("GET")
 
 	// Start the server
 	klog.Fatal(http.ListenAndServe(api.Addr, r))
 }
 
+func (api *Api) stat(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func checkError(err error, w http.ResponseWriter) bool {
+	isErr := err != nil
+	if isErr {
+		klog.Error(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	return isErr
+}
+
 func (api *Api) pigGroup(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	userKey := r.Header.Get("Authorization")
+	userId, err := auth(userKey, api.Data)
+	if checkError(err, w) {
+		return
+	}
+
 	var pins IpfsPinsGroup
-	err := json.NewDecoder(r.Body).Decode(&pins)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	err = json.NewDecoder(r.Body).Decode(&pins)
+	if checkError(err, w) {
 		return
 	}
 
-	var userId int64
-	user := api.Data.GetUserById(userKey)
-	if user == nil {
-		userId, err = api.Data.AddUser(userKey)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-	} else {
-		userId = user.id
-	}
-
-	group := api.Ipfs.PinGroup(pins)
-
-	if group == nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	group, err := api.Ipfs.PinGroup(pins)
+	if checkError(err, w) {
 		return
 	}
-	for _, pinConf := range pins.Pins {
-		pin := group[pinConf.Cid]
-		if pin == nil {
-			klog.Error("Pin not success: ", pinConf.Cid)
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		} else {
-			pinId := pin.Cid.String()
-			err := api.Data.AddPin(pinId, userId, 0)
 
-			if err != nil {
-				klog.Error("Pin save in db error: ", err)
-				return
-			} else {
-				klog.Info("Pin save in db: ", pinId)
-				for name, value := range pinConf.Labels {
-					err := api.Data.AddLabel(name, value, pinId)
-					if err != nil {
-						klog.Error("Label save in db error: ", err)
-						http.Error(w, err.Error(), http.StatusBadRequest)
-						return
-					} else {
-						klog.Info("Label save in db: ", pinId, name)
-					}
-				}
-			}
-		}
+	err = api.Data.SavePins(pins.Pins, group, userId)
+	if checkError(err, w) {
+		return
 	}
 
-	// Return the new user as JSON
-	json.NewEncoder(w).Encode(group)
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(group)
+	if checkError(err, w) {
+		return
+	}
 }

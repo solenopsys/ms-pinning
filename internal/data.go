@@ -2,6 +2,9 @@ package internal
 
 import (
 	"database/sql"
+	"errors"
+	"github.com/ipfs-cluster/ipfs-cluster/api"
+	"k8s.io/klog/v2"
 )
 
 type Data struct {
@@ -63,4 +66,30 @@ func (d *Data) AddLabel(name string, value string, pinId string) error {
 	err := d.Connection.QueryRow(query, name, value, pinId).Err()
 
 	return err
+}
+
+func (d *Data) SavePins(allPins []PinConf, group map[string]*api.Pin, userId int64) error {
+	for _, pinConf := range allPins {
+		pin := group[pinConf.Cid]
+		if pin == nil {
+			return errors.New("Pin not success: " + pinConf.Cid)
+		} else {
+			pinId := pin.Cid.String()
+			err := d.AddPin(pinId, userId, 0)
+
+			if err != nil {
+				return errors.New("Pin save in db error: " + err.Error())
+			} else {
+				klog.Info("Pin save in db: ", pinId)
+				for name, value := range pinConf.Labels {
+					err := d.AddLabel(name, value, pinId)
+					if err != nil {
+						return errors.New("Label save in db error: " + err.Error())
+					} else {
+						klog.Info("Label save in db: ", pinId, name)
+					}
+				}
+			}
+		}
+	}
 }
