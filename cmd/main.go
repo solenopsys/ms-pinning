@@ -37,6 +37,7 @@ func main() {
 		Host:     os.Getenv("postgres.Host"),
 		Port:     os.Getenv("postgres.Port"),
 	}
+
 	ipfsClusterPort := os.Getenv("ipfs-cluster.Port")
 	ipfsClusterHost := os.Getenv("ipfs-cluster.Host")
 	apiPort := os.Getenv("api.Port")
@@ -48,18 +49,13 @@ func main() {
 
 	db.Migrate()
 
-	defer func(db *pkg.Db) {
-		err := db.Disconnect()
-		if err != nil {
-			klog.Fatal(err)
-		}
-	}(&db)
+	defer db.Disconnect()
 
 	ipfsCluster := &pkg.IpfsCluster{
 		Host: ipfsClusterHost, Port: ipfsClusterPort,
 	}
 	ipfsCluster.Connect()
-	dataService := &internal.Data{Connection: db.Connection}
+	dataService := &internal.Data{Connection: db.Pool}
 
 	api := internal.Api{
 		Addr: ":" + apiPort,

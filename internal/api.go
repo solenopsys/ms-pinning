@@ -74,10 +74,4 @@ func (api *Api) pigGroup(w http.ResponseWriter, r *http.Request) {
 	if checkError(err, w) {
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(group)
-	if checkError(err, w) {
-		return
-	}
 }
