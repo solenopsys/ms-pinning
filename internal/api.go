@@ -9,9 +9,10 @@ import (
 )
 
 type Api struct {
-	Addr string
-	Ipfs *pkg.IpfsCluster
-	Data *Data
+	Addr        string
+	IpfsCluster *pkg.IpfsCluster
+	Ipfs        *pkg.IpfsNode
+	Data        *Data
 }
 
 func (api *Api) Start() {
@@ -21,6 +22,8 @@ func (api *Api) Start() {
 	// Define an endpoint to create a new user
 	r.HandleFunc("/pin", api.pigGroup).Methods("POST")
 	r.HandleFunc("/stat", api.stat).Methods("GET")
+	r.HandleFunc("/ipns/create", api.ipnsCreate).Methods("GET")
+	r.HandleFunc("/ipns/update", api.ipnsUpdate).Methods("GET")
 
 	// Start the server
 	klog.Fatal(http.ListenAndServe(api.Addr, r))
@@ -38,6 +41,64 @@ func (api *Api) stat(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	err := json.NewEncoder(w).Encode(stat)
+	if checkError(err, w) {
+		return
+	}
+}
+
+func (api *Api) ipnsCreate(w http.ResponseWriter, r *http.Request) {
+	userKey := r.Header.Get("Authorization")
+	userId, err := auth(userKey, api.Data)
+	if checkError(err, w) {
+		return
+	}
+
+	cid := r.URL.Query().Get("cid")
+	name := r.URL.Query().Get("name")
+
+	id, err := api.Ipfs.CreateKey(name)
+	if checkError(err, w) {
+		return
+	}
+
+	err = api.Ipfs.Publish(cid, name)
+	if checkError(err, w) {
+		return
+	}
+	err = api.Data.CreateIpnsRecord(id, userId, cid, name)
+	if checkError(err, w) {
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/text")
+	_, err = w.Write([]byte(id))
+	if checkError(err, w) {
+		return
+	}
+
+}
+
+func (api *Api) ipnsUpdate(w http.ResponseWriter, r *http.Request) {
+	userKey := r.Header.Get("Authorization")
+	userId, err := auth(userKey, api.Data)
+	if checkError(err, w) {
+		return
+	}
+
+	cid := r.URL.Query().Get("cid")
+	name := r.URL.Query().Get("name")
+
+	id, err := api.Data.ChangeIpnsRecord(name, cid, userId)
+	if checkError(err, w) {
+		return
+	}
+	err = api.Ipfs.Publish(cid, name)
+	if checkError(err, w) {
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/text")
+	_, err = w.Write([]byte(id))
 	if checkError(err, w) {
 		return
 	}
@@ -65,7 +126,7 @@ func (api *Api) pigGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	group, err := api.Ipfs.PinGroup(pins)
+	group, err := api.IpfsCluster.PinGroup(pins)
 	if checkError(err, w) {
 		return
 	}

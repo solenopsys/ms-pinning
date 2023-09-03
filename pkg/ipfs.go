@@ -2,63 +2,49 @@ package pkg
 
 import (
 	"context"
-	"github.com/ipfs-cluster/ipfs-cluster/api"
-	"github.com/ipfs-cluster/ipfs-cluster/api/rest/client"
+	"fmt"
+	shell "github.com/ipfs/go-ipfs-api"
 	"k8s.io/klog/v2"
+	"time"
 )
 
-type IpfsPinsGroup struct {
-	Pins   []PinConf `json:"pins"`
-	RepMin int       `json:"rep_min"`
-	RepMax int       `json:"rep_max"`
+type IpfsNode struct {
+	Host string
+	Port string
 }
 
-type PinConf struct {
-	Cid    string            `json:"cid"`
-	Labels map[string]string `json:"labels"`
+func (node *IpfsNode) GetShell() *shell.Shell {
+	shell := shell.NewShell(node.Host + ":" + node.Port)
+
+	return shell
 }
 
-type IpfsCluster struct {
-	Host   string
-	Port   string
-	client client.Client
-}
+func (node *IpfsNode) CreateKey(keyName string) (string, error) {
 
-func (cluster *IpfsCluster) Connect() {
-	var err error
-
-	cfg := client.Config{Host: cluster.Host, Port: cluster.Port}
-	cluster.client, err = client.NewDefaultClient(
-		&cfg)
+	key, err := node.GetShell().KeyGen(context.Background(), keyName)
 	if err != nil {
-
-		klog.Error("Failed to create client:", err)
-		return
+		fmt.Println("Error creating IPNS key:", err)
+		return "", err
 	}
+
+	klog.Info("IPNS key '" + keyName + "' created with ID: " + key.Id)
+
+	return key.Id, nil
 }
 
-func (cluster *IpfsCluster) PinGroup(group IpfsPinsGroup) (map[string]*api.Pin, error) {
-
-	pins := map[string]*api.Pin{}
-
-	for _, cid := range group.Pins {
-		decodeCid, err := api.DecodeCid(cid.Cid)
-		if err != nil {
-			klog.Error("Failed decode cid:", err)
-			return pins, err
-		}
-
-		pin, err := cluster.client.Pin(context.Background(), decodeCid, api.PinOptions{
-			ReplicationFactorMin: group.RepMin,
-			ReplicationFactorMax: group.RepMax,
-		})
-
-		if err != nil {
-			klog.Error("Failed to pin CID:", err)
-			return pins, err
-		}
-		pins[cid.Cid] = &pin
+func (node *IpfsNode) Publish(cid string, keyName string) error {
+	var lifeTime time.Duration
+	//24h
+	lifeTime = 24 * time.Hour
+	var ttl time.Duration
+	ttl = 3 * time.Hour
+	details, err := node.GetShell().PublishWithDetails(cid, keyName, lifeTime, ttl, false)
+	if err != nil {
+		fmt.Println("Error publishing:", err)
+		return err
 	}
 
-	return pins, nil
+	klog.Info("Content published to IPNS with name: ", keyName)
+	klog.Info("Publish response: ", details.Value)
+	return nil
 }

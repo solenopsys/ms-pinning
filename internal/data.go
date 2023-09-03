@@ -14,14 +14,14 @@ type Data struct {
 }
 
 type User struct {
-	id        int64
+	id        uint64
 	publicKey string
 	createdAt string
 }
 
 type Pin struct {
 	id        int
-	userId    int64
+	userId    uint64
 	createdAt string
 	size      int
 	state     string
@@ -65,8 +65,8 @@ func (d *Data) GetUserById(publicKey string) (*User, error) {
 	}
 }
 
-func (d *Data) AddUser(publicKey string) (int64, error) {
-	lastInsertId := int64(0)
+func (d *Data) AddUser(publicKey string) (uint64, error) {
+	lastInsertId := uint64(0)
 	query := "INSERT INTO users (public_key) VALUES ($1)"
 
 	err := d.Connection.QueryRow(context.Background(), query, publicKey).Scan(&lastInsertId)
@@ -74,11 +74,29 @@ func (d *Data) AddUser(publicKey string) (int64, error) {
 	return lastInsertId, err
 }
 
-func (d *Data) AddPin(id string, userId int64, size uint64) error {
+func (d *Data) AddPin(id string, userId uint64, size uint64) error {
 
 	query := "INSERT INTO pins (id,user_id, size) VALUES ($1,$2, $3) ON CONFLICT (id) DO NOTHING"
 	_, err := d.Connection.Exec(context.Background(), query, id, userId, size)
 	return err
+}
+
+func (d *Data) CreateIpnsRecord(id string, userId uint64, pinId string, name string) error {
+	query := "INSERT INTO ipns (id,user_id, pin_id,name) VALUES ($1,$2,$3,$4) "
+	_, err := d.Connection.Exec(context.Background(), query, id, userId, pinId, name)
+	return err
+}
+
+func (d *Data) ChangeIpnsRecord(name string, pinId string, userId uint64) (string, error) {
+	query := "UPDATE ipns set pin_id=$1::text WHERE name=$2 and user_id=$3 RETURNING id;"
+	var id string
+	err := d.Connection.QueryRow(context.Background(), query, pinId, name, userId).Scan(&id)
+
+	if err != nil {
+		return "", err
+	}
+
+	return id, nil
 }
 
 func (d *Data) AddLabel(name string, value string, pinId string) error {
@@ -89,7 +107,7 @@ func (d *Data) AddLabel(name string, value string, pinId string) error {
 
 }
 
-func (d *Data) SavePins(allPins []pkg.PinConf, group map[string]*api.Pin, userId int64) error {
+func (d *Data) SavePins(allPins []pkg.PinConf, group map[string]*api.Pin, userId uint64) error {
 	for i, pinConf := range allPins {
 		pin := group[pinConf.Cid]
 		if pin == nil {

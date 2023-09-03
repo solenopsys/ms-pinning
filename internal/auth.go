@@ -1,7 +1,7 @@
 package internal
 
-func auth(userKey string, data *Data) (int64, error) {
-	var userId int64
+func auth(userKey string, data *Data) (uint64, error) {
+	var userId uint64
 	user, err := data.GetUserById(userKey)
 	if err != nil {
 		panic(err)

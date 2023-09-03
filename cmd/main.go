@@ -40,7 +40,11 @@ func main() {
 
 	ipfsClusterPort := os.Getenv("ipfs-cluster.Port")
 	ipfsClusterHost := os.Getenv("ipfs-cluster.Host")
+
 	apiPort := os.Getenv("api.Port")
+
+	ipfsHost := os.Getenv("ipfs.Host")
+	ipfsPort := os.Getenv("ipfs.Port")
 
 	err := db.Connect()
 	if err != nil {
@@ -58,9 +62,10 @@ func main() {
 	dataService := &internal.Data{Connection: db.Pool}
 
 	api := internal.Api{
-		Addr: ":" + apiPort,
-		Ipfs: ipfsCluster,
-		Data: dataService,
+		Addr:        ":" + apiPort,
+		IpfsCluster: ipfsCluster,
+		Data:        dataService,
+		Ipfs:        &pkg.IpfsNode{Host: ipfsHost, Port: ipfsPort},
 	}
 
 	api.Start()
