@@ -32,12 +32,14 @@ func (api *Api) Start() {
 type Statistic struct {
 	UsersCount int `json:"users_count"`
 	PinsCount  int `json:"pins_count"`
+	IpnsCount  int `json:"ipns_count"`
 }
 
 func (api *Api) stat(w http.ResponseWriter, r *http.Request) {
 	stat := Statistic{}
 	stat.UsersCount, _ = api.Data.GetUsersCount()
 	stat.PinsCount, _ = api.Data.GetPinsCount()
+	stat.IpnsCount, _ = api.Data.GetIpnsCount()
 
 	w.Header().Set("Content-Type", "application/json")
 	err := json.NewEncoder(w).Encode(stat)

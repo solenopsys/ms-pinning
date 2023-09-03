@@ -35,9 +35,9 @@ func (node *IpfsNode) CreateKey(keyName string) (string, error) {
 func (node *IpfsNode) Publish(cid string, keyName string) error {
 	var lifeTime time.Duration
 	//24h
-	lifeTime = 24 * time.Hour
+	lifeTime = 24 * time.Hour * 7
 	var ttl time.Duration
-	ttl = 3 * time.Hour
+	ttl = 5 * time.Minute
 	details, err := node.GetShell().PublishWithDetails(cid, keyName, lifeTime, ttl, false)
 	if err != nil {
 		fmt.Println("Error publishing:", err)

@@ -41,6 +41,13 @@ func (d *Data) GetPinsCount() (int, error) {
 	return count, err
 }
 
+func (d *Data) GetIpnsCount() (int, error) {
+	var count int
+	err := d.Connection.QueryRow(context.Background(), "SELECT count(*) FROM  ipns ").Scan(&count)
+
+	return count, err
+}
+
 func (d *Data) GetUsersCount() (int, error) {
 	var count int
 	err := d.Connection.QueryRow(context.Background(), "SELECT count(*) FROM  users ").Scan(&count)
