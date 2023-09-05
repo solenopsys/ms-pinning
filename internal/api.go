@@ -6,6 +6,7 @@ import (
 	"k8s.io/klog/v2"
 	"ms-pinning/pkg"
 	"net/http"
+	"strconv"
 )
 
 type Api struct {
@@ -48,6 +49,10 @@ func (api *Api) stat(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func createFullName(userId uint64, name string) string {
+	return strconv.FormatUint(userId, 0) + "@" + name
+}
+
 func (api *Api) ipnsCreate(w http.ResponseWriter, r *http.Request) {
 	userKey := r.Header.Get("Authorization")
 	userId, err := auth(userKey, api.Data)
@@ -58,15 +63,18 @@ func (api *Api) ipnsCreate(w http.ResponseWriter, r *http.Request) {
 	cid := r.URL.Query().Get("cid")
 	name := r.URL.Query().Get("name")
 
-	id, err := api.Ipfs.CreateKey(name)
+	fullName := createFullName(userId, name)
+
+	id, err := api.Ipfs.CreateKey(fullName)
 	if checkError(err, w) {
 		return
 	}
 
-	err = api.Ipfs.Publish(cid, name)
+	err = api.Ipfs.Publish(cid, fullName)
 	if checkError(err, w) {
 		return
 	}
+
 	err = api.Data.CreateIpnsRecord(id, userId, cid, name)
 	if checkError(err, w) {
 		return
@@ -94,7 +102,9 @@ func (api *Api) ipnsUpdate(w http.ResponseWriter, r *http.Request) {
 	if checkError(err, w) {
 		return
 	}
-	err = api.Ipfs.Publish(cid, name)
+
+	fullName := createFullName(userId, name)
+	err = api.Ipfs.Publish(cid, fullName)
 	if checkError(err, w) {
 		return
 	}
