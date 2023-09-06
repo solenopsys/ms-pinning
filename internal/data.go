@@ -223,3 +223,15 @@ func (d *Data) SelectIpns(namePattern string, valuePattern string) (map[string]m
 
 	return result, err
 }
+
+func (d *Data) PinExists(cid string) (bool, error) {
+	var exists bool
+	err := d.Connection.QueryRow(context.Background(), "SELECT EXISTS(SELECT 1 FROM pins WHERE id = $1)", cid).Scan(&exists)
+	return exists, err
+}
+
+func (d *Data) NameExists(name string, id uint64) (bool, error) {
+	var exists bool
+	err := d.Connection.QueryRow(context.Background(), "SELECT EXISTS(SELECT 1 FROM ipns WHERE name = $1 and user_id=$2)", name, id).Scan(&exists)
+	return exists, err
+}

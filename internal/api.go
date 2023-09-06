@@ -16,6 +16,14 @@ type Api struct {
 	Data        *Data
 }
 
+type BoolResponse struct {
+	Result bool `json:"result"`
+}
+
+type IdResponse struct {
+	Id string `json:"id"`
+}
+
 func (api *Api) Start() {
 	// http server open port
 	r := mux.NewRouter()
@@ -25,9 +33,11 @@ func (api *Api) Start() {
 	r.HandleFunc("/stat", api.stat).Methods("GET")
 	r.HandleFunc("/stat/pins", api.statPins).Methods("GET")
 	r.HandleFunc("/select/pins", api.selectPins).Methods("GET")
-	r.HandleFunc("/select/ipns", api.selectIpns).Methods("GET")
-	r.HandleFunc("/ipns/create", api.ipnsCreate).Methods("GET")
-	r.HandleFunc("/ipns/update", api.ipnsUpdate).Methods("GET")
+	r.HandleFunc("/select/names", api.selectName).Methods("GET")
+	r.HandleFunc("/check/pin", api.checkPin).Methods("GET")
+	r.HandleFunc("/check/name", api.checkName).Methods("GET")
+	r.HandleFunc("/name/create", api.ipnsCreate).Methods("GET")
+	r.HandleFunc("/name/update", api.ipnsUpdate).Methods("GET")
 
 	// Start the server
 	klog.Fatal(http.ListenAndServe(api.Addr, r))
@@ -39,6 +49,34 @@ type Statistic struct {
 	IpnsCount  int `json:"ipns_count"`
 }
 
+func jsonResponse(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	err := json.NewEncoder(w).Encode(data)
+	if checkError(err, w) {
+		return
+	}
+}
+
+func (api *Api) checkPin(w http.ResponseWriter, r *http.Request) {
+	cid := r.URL.Query().Get("cid")
+	result, err := api.Data.PinExists(cid)
+	if checkError(err, w) {
+		return
+	}
+	jsonResponse(w, BoolResponse{Result: result})
+}
+
+func (api *Api) checkName(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	userKey := r.Header.Get("Authorization")
+	userId, err := auth(userKey, api.Data)
+	result, err := api.Data.NameExists(name, userId)
+	if checkError(err, w) {
+		return
+	}
+	jsonResponse(w, BoolResponse{Result: result})
+}
+
 func (api *Api) selectPins(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
 	value := r.URL.Query().Get("value")
@@ -48,14 +86,10 @@ func (api *Api) selectPins(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(stat)
-	if checkError(err, w) {
-		return
-	}
+	jsonResponse(w, stat)
 }
 
-func (api *Api) selectIpns(w http.ResponseWriter, r *http.Request) {
+func (api *Api) selectName(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
 	value := r.URL.Query().Get("value")
 
@@ -64,11 +98,7 @@ func (api *Api) selectIpns(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(stat)
-	if checkError(err, w) {
-		return
-	}
+	jsonResponse(w, stat)
 }
 
 func (api *Api) statPins(w http.ResponseWriter, r *http.Request) {
@@ -77,11 +107,7 @@ func (api *Api) statPins(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(stat)
-	if checkError(err, w) {
-		return
-	}
+	jsonResponse(w, stat)
 }
 
 func (api *Api) stat(w http.ResponseWriter, r *http.Request) {
@@ -90,11 +116,7 @@ func (api *Api) stat(w http.ResponseWriter, r *http.Request) {
 	stat.PinsCount, _ = api.Data.GetPinsCount()
 	stat.IpnsCount, _ = api.Data.GetIpnsCount()
 
-	w.Header().Set("Content-Type", "application/json")
-	err := json.NewEncoder(w).Encode(stat)
-	if checkError(err, w) {
-		return
-	}
+	jsonResponse(w, stat)
 }
 
 func createFullName(userId uint64, name string) string {
@@ -128,12 +150,7 @@ func (api *Api) ipnsCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/text")
-	_, err = w.Write([]byte(id))
-	if checkError(err, w) {
-		return
-	}
-
+	jsonResponse(w, IdResponse{Id: id})
 }
 
 func (api *Api) ipnsUpdate(w http.ResponseWriter, r *http.Request) {
@@ -157,11 +174,7 @@ func (api *Api) ipnsUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/text")
-	_, err = w.Write([]byte(id))
-	if checkError(err, w) {
-		return
-	}
+	jsonResponse(w, IdResponse{Id: id})
 }
 
 func checkError(err error, w http.ResponseWriter) bool {
