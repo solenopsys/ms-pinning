@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"k8s.io/klog/v2"
 	"ms-pinning/pkg"
+	"strings"
 )
 
 type Data struct {
@@ -52,6 +53,61 @@ func (d *Data) GetUsersCount() (int, error) {
 	var count int
 	err := d.Connection.QueryRow(context.Background(), "SELECT count(*) FROM  users ").Scan(&count)
 	return count, err
+}
+
+func changePattern(value string) string {
+	newValue := strings.ReplaceAll(value, "*", "%")
+	if newValue == "" {
+		return "%"
+	} else {
+		return newValue
+	}
+}
+
+func (d *Data) SelectPins(namePattern string, valuePattern string) (map[string]map[string]string, error) {
+	result := make(map[string]map[string]string)
+
+	nameFilter := changePattern(namePattern)
+	valueFilter := changePattern(valuePattern)
+
+	query := "select pin_id,name,value from labels where pin_id in (select pin_id from labels where name like $1 and value like $2)"
+	rows, err := d.Connection.Query(context.Background(), query, nameFilter, valueFilter)
+
+	for rows.Next() {
+		var pinId string
+		var name string
+		var value string
+		err := rows.Scan(&pinId, &name, &value)
+		if err != nil {
+			return nil, err
+		} else {
+			if result[pinId] == nil {
+				result[pinId] = make(map[string]string)
+			}
+			result[pinId][name] = value
+		}
+	}
+
+	return result, err
+}
+
+func (d *Data) StatByTypes() (map[string]uint, error) {
+	stat := make(map[string]uint)
+
+	rows, err := d.Connection.Query(context.Background(), "select name, count(*) from pins join public.labels l on pins.id = l.pin_id group by name")
+
+	for rows.Next() {
+		var name string
+		var count uint
+		err := rows.Scan(&name, &count)
+		if err != nil {
+			return nil, err
+		} else {
+			stat[name] = count
+		}
+	}
+
+	return stat, err
 }
 
 func (d *Data) GetUserById(publicKey string) (*User, error) {
@@ -139,4 +195,31 @@ func (d *Data) SavePins(allPins []pkg.PinConf, group map[string]*api.Pin, userId
 		}
 	}
 	return nil
+}
+
+func (d *Data) SelectIpns(namePattern string, valuePattern string) (map[string]map[string]string, error) {
+	result := make(map[string]map[string]string)
+
+	nameFilter := changePattern(namePattern)
+	valueFilter := changePattern(valuePattern)
+
+	query := "select (select id from ipns where ipns.pin_id=labels.pin_id) ipnsId,name,value from labels where pin_id in  (    select labels.pin_id  from labels join ipns on labels.pin_id = ipns.pin_id where labels.name like $1 and value like $2)"
+	rows, err := d.Connection.Query(context.Background(), query, nameFilter, valueFilter)
+
+	for rows.Next() {
+		var ipnsId string
+		var name string
+		var value string
+		err := rows.Scan(&ipnsId, &name, &value)
+		if err != nil {
+			return nil, err
+		} else {
+			if result[ipnsId] == nil {
+				result[ipnsId] = make(map[string]string)
+			}
+			result[ipnsId][name] = value
+		}
+	}
+
+	return result, err
 }

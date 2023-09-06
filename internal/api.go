@@ -23,6 +23,9 @@ func (api *Api) Start() {
 	// Define an endpoint to create a new user
 	r.HandleFunc("/pin", api.pigGroup).Methods("POST")
 	r.HandleFunc("/stat", api.stat).Methods("GET")
+	r.HandleFunc("/stat/pins", api.statPins).Methods("GET")
+	r.HandleFunc("/select/pins", api.selectPins).Methods("GET")
+	r.HandleFunc("/select/ipns", api.selectIpns).Methods("GET")
 	r.HandleFunc("/ipns/create", api.ipnsCreate).Methods("GET")
 	r.HandleFunc("/ipns/update", api.ipnsUpdate).Methods("GET")
 
@@ -34,6 +37,51 @@ type Statistic struct {
 	UsersCount int `json:"users_count"`
 	PinsCount  int `json:"pins_count"`
 	IpnsCount  int `json:"ipns_count"`
+}
+
+func (api *Api) selectPins(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	value := r.URL.Query().Get("value")
+
+	stat, err := api.Data.SelectPins(name, value)
+	if checkError(err, w) {
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(stat)
+	if checkError(err, w) {
+		return
+	}
+}
+
+func (api *Api) selectIpns(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	value := r.URL.Query().Get("value")
+
+	stat, err := api.Data.SelectIpns(name, value)
+	if checkError(err, w) {
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(stat)
+	if checkError(err, w) {
+		return
+	}
+}
+
+func (api *Api) statPins(w http.ResponseWriter, r *http.Request) {
+	stat, err := api.Data.StatByTypes()
+	if checkError(err, w) {
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(stat)
+	if checkError(err, w) {
+		return
+	}
 }
 
 func (api *Api) stat(w http.ResponseWriter, r *http.Request) {
