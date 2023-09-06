@@ -38,6 +38,7 @@ func (api *Api) Start() {
 	r.HandleFunc("/check/name", api.checkName).Methods("GET")
 	r.HandleFunc("/name/create", api.ipnsCreate).Methods("GET")
 	r.HandleFunc("/name/update", api.ipnsUpdate).Methods("GET")
+	r.HandleFunc("/set/nickname", api.setNickname).Methods("GET")
 
 	// Start the server
 	klog.Fatal(http.ListenAndServe(api.Addr, r))
@@ -57,6 +58,23 @@ func jsonResponse(w http.ResponseWriter, data interface{}) {
 	}
 }
 
+func (api *Api) setNickname(w http.ResponseWriter, r *http.Request) {
+	userKey := r.Header.Get("Authorization")
+	nickname := r.URL.Query().Get("value")
+	userId, err := auth(userKey, api.Data)
+	exists, err := api.Data.CheckNicNameExists(nickname)
+	if !exists {
+		api.Data.SetNicName(userId, nickname)
+	} else {
+		http.Error(w, "Nickname already exists", http.StatusBadRequest)
+	}
+
+	if checkError(err, w) {
+		return
+	}
+	jsonResponse(w, BoolResponse{Result: true})
+}
+
 func (api *Api) checkPin(w http.ResponseWriter, r *http.Request) {
 	cid := r.URL.Query().Get("cid")
 	result, err := api.Data.PinExists(cid)
@@ -67,7 +85,7 @@ func (api *Api) checkPin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *Api) checkName(w http.ResponseWriter, r *http.Request) {
-	name := r.URL.Query().Get("name")
+	name := r.URL.Query().Get("value")
 	userKey := r.Header.Get("Authorization")
 	userId, err := auth(userKey, api.Data)
 	result, err := api.Data.NameExists(name, userId)

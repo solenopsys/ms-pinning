@@ -235,3 +235,15 @@ func (d *Data) NameExists(name string, id uint64) (bool, error) {
 	err := d.Connection.QueryRow(context.Background(), "SELECT EXISTS(SELECT 1 FROM ipns WHERE name = $1 and user_id=$2)", name, id).Scan(&exists)
 	return exists, err
 }
+
+func (d *Data) CheckNicNameExists(name string) (bool, error) {
+	var exists bool
+	err := d.Connection.QueryRow(context.Background(), "SELECT EXISTS(SELECT 1 FROM users WHERE nickname = $1)", name).Scan(&exists)
+	return exists, err
+}
+
+func (d *Data) SetNicName(userId uint64, name string) (bool, error) {
+	var exists bool
+	err := d.Connection.QueryRow(context.Background(), "UPDATE users SET nickname=$1 WHERE id=$2", name, userId).Scan(&exists)
+	return exists, err
+}
