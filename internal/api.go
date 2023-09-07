@@ -39,6 +39,8 @@ func (api *Api) Start() {
 	r.HandleFunc("/name/create", api.ipnsCreate).Methods("GET")
 	r.HandleFunc("/name/update", api.ipnsUpdate).Methods("GET")
 	r.HandleFunc("/set/nickname", api.setNickname).Methods("GET")
+	r.HandleFunc("/get/pin", api.getPin).Methods("GET")
+	r.HandleFunc("/get/name", api.getIpns).Methods("GET")
 
 	// Start the server
 	klog.Fatal(http.ListenAndServe(api.Addr, r))
@@ -48,6 +50,39 @@ type Statistic struct {
 	UsersCount int `json:"users_count"`
 	PinsCount  int `json:"pins_count"`
 	IpnsCount  int `json:"ipns_count"`
+}
+
+func (api *Api) getPin(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("cid")
+	pin, err := api.Data.GetPin(id)
+	if err != nil { // todo change it
+		http.Error(w, "Pin not found", http.StatusNotFound)
+		return
+	}
+
+	jsonResponse(w, pin)
+}
+
+func (api *Api) getIpns(w http.ResponseWriter, r *http.Request) {
+	userKey := r.Header.Get("Authorization")
+	userId, err := auth(userKey, api.Data)
+	if checkError(err, w) {
+		return
+	}
+	id := r.URL.Query().Get("cid")
+	name := r.URL.Query().Get("name")
+	var resp *RecordInfo
+	if name != "" {
+		resp, err = api.Data.GetIpnsByName(name, userId)
+	} else {
+		resp, err = api.Data.GetIpnsById(id)
+	}
+
+	if err != nil { // todo change it
+		http.Error(w, "Pin not found", http.StatusNotFound)
+		return
+	}
+	jsonResponse(w, resp)
 }
 
 func jsonResponse(w http.ResponseWriter, data interface{}) {
@@ -138,7 +173,7 @@ func (api *Api) stat(w http.ResponseWriter, r *http.Request) {
 }
 
 func createFullName(userId uint64, name string) string {
-	return strconv.FormatUint(userId, 0) + "@" + name
+	return strconv.FormatUint(userId, 10) + "@" + name
 }
 
 func (api *Api) ipnsCreate(w http.ResponseWriter, r *http.Request) {

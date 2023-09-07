@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"github.com/ipfs-cluster/ipfs-cluster/api"
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"k8s.io/klog/v2"
 	"ms-pinning/pkg"
 	"strings"
+	"time"
 )
 
 type Data struct {
@@ -62,33 +64,6 @@ func changePattern(value string) string {
 	} else {
 		return newValue
 	}
-}
-
-func (d *Data) SelectPins(namePattern string, valuePattern string) (map[string]map[string]string, error) {
-	result := make(map[string]map[string]string)
-
-	nameFilter := changePattern(namePattern)
-	valueFilter := changePattern(valuePattern)
-
-	query := "select pin_id,name,value from labels where pin_id in (select pin_id from labels where name like $1 and value like $2)"
-	rows, err := d.Connection.Query(context.Background(), query, nameFilter, valueFilter)
-
-	for rows.Next() {
-		var pinId string
-		var name string
-		var value string
-		err := rows.Scan(&pinId, &name, &value)
-		if err != nil {
-			return nil, err
-		} else {
-			if result[pinId] == nil {
-				result[pinId] = make(map[string]string)
-			}
-			result[pinId][name] = value
-		}
-	}
-
-	return result, err
 }
 
 func (d *Data) StatByTypes() (map[string]uint, error) {
@@ -197,14 +172,9 @@ func (d *Data) SavePins(allPins []pkg.PinConf, group map[string]*api.Pin, userId
 	return nil
 }
 
-func (d *Data) SelectIpns(namePattern string, valuePattern string) (map[string]map[string]string, error) {
+func convertRecordRow(rows pgx.Rows) (map[string]map[string]string, error) {
+	defer rows.Close()
 	result := make(map[string]map[string]string)
-
-	nameFilter := changePattern(namePattern)
-	valueFilter := changePattern(valuePattern)
-
-	query := "select (select id from ipns where ipns.pin_id=labels.pin_id) ipnsId,name,value from labels where pin_id in  (    select labels.pin_id  from labels join ipns on labels.pin_id = ipns.pin_id where labels.name like $1 and value like $2)"
-	rows, err := d.Connection.Query(context.Background(), query, nameFilter, valueFilter)
 
 	for rows.Next() {
 		var ipnsId string
@@ -220,8 +190,122 @@ func (d *Data) SelectIpns(namePattern string, valuePattern string) (map[string]m
 			result[ipnsId][name] = value
 		}
 	}
+	return result, nil
+}
 
-	return result, err
+func (d *Data) SelectIpns(namePattern string, valuePattern string) (map[string]map[string]string, error) {
+	nameFilter := changePattern(namePattern)
+	valueFilter := changePattern(valuePattern)
+
+	query := "select (select id from ipns where ipns.pin_id=labels.pin_id) ipnsId,name,value from labels where pin_id in  (    select labels.pin_id  from labels join ipns on labels.pin_id = ipns.pin_id where labels.name like $1 and value like $2)"
+	rows, err := d.Connection.Query(context.Background(), query, nameFilter, valueFilter)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return convertRecordRow(rows)
+}
+
+func (d *Data) SelectPins(namePattern string, valuePattern string) (map[string]map[string]string, error) {
+	nameFilter := changePattern(namePattern)
+	valueFilter := changePattern(valuePattern)
+
+	query := "select pin_id,name,value from labels where pin_id in (select pin_id from labels where name like $1 and value like $2)"
+	rows, err := d.Connection.Query(context.Background(), query, nameFilter, valueFilter)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return convertRecordRow(rows)
+}
+
+type RecordInfo struct {
+	Id       string            `json:"cid"`
+	CreateAt time.Time         `json:"create"`
+	Labels   map[string]string `json:"labels"`
+}
+
+func (d *Data) GetPin(cid string) (*RecordInfo, error) {
+
+	var pinId string
+	var createAt time.Time
+	err := d.Connection.QueryRow(context.Background(), "select id,created_at from pins where id = $1", cid).Scan(&pinId, &createAt)
+	if err != nil {
+		return nil, err
+	}
+
+	query := "select pin_id,name,value from labels where pin_id = $1"
+	rows, err := d.Connection.Query(context.Background(), query, pinId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := convertRecordRow(rows)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &RecordInfo{
+		Id:       pinId,
+		CreateAt: createAt,
+		Labels:   result[cid],
+	}, nil
+}
+
+func (d *Data) GetIpnsByName(name string, userId uint64) (*RecordInfo, error) {
+	var ipnsId string
+	var createAt time.Time
+	err := d.Connection.QueryRow(context.Background(),
+		"select id,created_at  from ipns where name = $1 and user_id=$2", name, userId).Scan(&ipnsId, &createAt)
+	if err != nil {
+		return nil, err
+	}
+
+	labels, err := d.GetIpnsLabels(ipnsId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &RecordInfo{
+		Id:     ipnsId,
+		Labels: labels[ipnsId],
+	}, nil
+}
+
+func (d *Data) GetIpnsById(cid string) (*RecordInfo, error) {
+	var ipnsId string
+	var createAt time.Time
+	err := d.Connection.QueryRow(context.Background(),
+		"select id,created_at  from ipns where id = $1", cid).Scan(&ipnsId, &createAt)
+	if err != nil {
+		return nil, err
+	}
+
+	labels, err := d.GetIpnsLabels(ipnsId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &RecordInfo{
+		Id:     ipnsId,
+		Labels: labels[ipnsId],
+	}, nil
+}
+
+func (d *Data) GetIpnsLabels(ipnsId string) (map[string]map[string]string, error) {
+
+	query := " select ipns.id,labels.name,value  from labels join ipns on labels.pin_id = ipns.pin_id where ipns.id = $1 "
+	rows, err := d.Connection.Query(context.Background(), query, ipnsId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return convertRecordRow(rows)
 }
 
 func (d *Data) PinExists(cid string) (bool, error) {
