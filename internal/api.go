@@ -29,8 +29,10 @@ func (api *Api) Start() {
 	r := mux.NewRouter()
 
 	// Define an endpoint to create a new user
+	// todo make restfull
 	r.HandleFunc("/pin", api.pigGroup).Methods("POST")
 	r.HandleFunc("/stat", api.stat).Methods("GET")
+	r.HandleFunc("/labels", api.updateLabels).Methods("PUT")
 	r.HandleFunc("/stat/pins", api.statPins).Methods("GET")
 	r.HandleFunc("/select/pins", api.selectPins).Methods("GET")
 	r.HandleFunc("/select/names", api.selectName).Methods("GET")
@@ -261,4 +263,30 @@ func (api *Api) pigGroup(w http.ResponseWriter, r *http.Request) {
 	if checkError(err, w) {
 		return
 	}
+}
+
+func (api *Api) updateLabels(w http.ResponseWriter, r *http.Request) {
+	userKey := r.Header.Get("Authorization")
+	userId, err := auth(userKey, api.Data)
+	if checkError(err, w) {
+		return
+	}
+
+	var pins pkg.IpfsPinsGroup
+	err = json.NewDecoder(r.Body).Decode(&pins)
+	if checkError(err, w) {
+		return
+	}
+
+	for _, pin := range pins.Pins {
+		err := api.Data.DeleteLabels(pin.Cid, userId)
+		if checkError(err, w) {
+			return
+		}
+		err = api.Data.AddLabels(pin.Labels, pin.Cid, userId, true)
+		if checkError(err, w) {
+			return
+		}
+	}
+
 }

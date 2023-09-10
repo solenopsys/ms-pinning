@@ -157,19 +157,50 @@ func (d *Data) SavePins(allPins []pkg.PinConf, group map[string]*api.Pin, userId
 			if err != nil {
 				return errors.New("Pin save in db error: " + err.Error())
 			} else {
-				klog.Info(i, " Pin save in db: ", pinId)
-				for name, value := range pinConf.Labels {
-					err := d.AddLabel(name, value, pinId)
-					if err != nil {
-						return errors.New("Label save in db error: " + err.Error())
-					} else {
-						klog.Info(i, "Label save in db: ", pinId, name)
-					}
+				klog.Info(i, " Pin saved in db: ", pinId)
+				err := d.AddLabels(pinConf.Labels, pinId, userId, false)
+				if err != nil {
+					return err
+				} else {
+					klog.Info("Label save in db: ", pinId)
 				}
 			}
 		}
 	}
 	return nil
+}
+
+func (d *Data) AddLabels(labels map[string]string, pinId string, userId uint64, checkUser bool) error {
+	if checkUser {
+		query := "select user_id from pins where id=$1 and  user_id=$2"
+		var userIdFromDb uint64
+
+		err := d.Connection.QueryRow(context.Background(), query, pinId, userId).Scan(&userIdFromDb)
+		if err != nil {
+			return err
+		}
+		if userIdFromDb != userId {
+			return errors.New("Mistake pin owner ")
+		}
+	}
+
+	for name, value := range labels {
+		err := d.AddLabel(name, value, pinId)
+		if err != nil {
+			return errors.New("Label save in db error: " + err.Error())
+		} else {
+			klog.Info("Label save in db: ", pinId, name)
+		}
+	}
+
+	return nil
+}
+
+func (d *Data) DeleteLabels(pinId string, userId uint64) error {
+	query := "delete from labels where labels.pin_id=$1 and labels.pin_id in (select id from pins where user_id=$2)"
+	_, err := d.Connection.Exec(context.Background(), query, pinId, userId)
+
+	return err
 }
 
 func convertRecordRow(rows pgx.Rows) (map[string]map[string]string, error) {
