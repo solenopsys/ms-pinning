@@ -7,8 +7,6 @@ COPY go.mod ./
 COPY go.sum ./
 COPY *.go ./
 
-
-
 RUN mkdir -p migrations
 COPY migrations/* ./migrations/
 
